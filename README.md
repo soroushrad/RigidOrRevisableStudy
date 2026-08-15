@@ -26,3 +26,13 @@ Form submission endpoint:
 `https://docs.google.com/forms/d/e/1FAIpQLSfV1jRkeXix4dCeW58tMerj6zxvCmFLYoChLZnbMOkg19JBqg/formResponse`
 
 Before collecting real participant data, run one complete test and confirm that a new row appears in the linked Google Sheet.
+
+
+## v2.10 — Mobile and placement fixes
+
+- Prevents activities from silently displacing other activities during Fixed, Constrained, and Flexible placement steps.
+- If the participant tries to use an occupied slot, the UI asks them to choose an empty slot.
+- If Continue is blocked, the UI now names the exact activity or activities that are still missing.
+- Resolve Conflicts supports intuitive swapping when a scheduled activity is moved onto another scheduled activity.
+- Added long-press touch reordering for Revisable workflow steps on iPhone/iOS Safari and other touch devices.
+- Added a visible drag grip to workflow steps.

@@ -108,3 +108,10 @@ V2.9 — GOOGLE FORM CONNECTED
 -----------------------------
 The live Google Form endpoint and all five entry IDs are configured.
 Submit Data now posts the completed two-test study payload to the linked Google Form/Google Sheet.
+
+
+V2.10 — MOBILE + MISSING-ACTIVITY FIX
+------------------------------------
+- Fixed hidden missing-activity states caused by dropping onto occupied slots.
+- Continue now reports the exact missing activity names.
+- Added long-press touch drag for Revisable workflow steps on mobile/iPhone.

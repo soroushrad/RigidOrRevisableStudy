@@ -554,40 +554,96 @@ function enableDrag(stepId) {
 
 function placeActivity(activityId, time, stepId) {
   const sc = currentScenario();
-  const activity = sc.activities.find(a=>a.id===activityId);
+  const activity = sc.activities.find(a => a.id === activityId);
   if (!activity) return;
 
   const allowed = stepId === "resolve" || activity.group === stepId;
   if (!allowed) return;
 
-  for (const t of Object.keys(state.schedule)) {
-    if (state.schedule[t] === activityId) delete state.schedule[t];
+  const oldTime = Object.keys(state.schedule).find(t => state.schedule[t] === activityId) || null;
+  const occupyingId = state.schedule[time] || null;
+
+  // During the structured placement steps, never silently remove an
+  // activity that is already in an occupied time slot. This previously
+  // created hidden "missing activity" states.
+  if (stepId !== "resolve" && occupyingId && occupyingId !== activityId) {
+    const occupying = sc.activities.find(a => a.id === occupyingId);
+    $("stepMessage").textContent =
+      `${time} is already occupied by ${occupying?.name || "another activity"}. Choose an empty time slot.`;
+    $("stepMessage").className = "step-message error";
+    log("occupied_slot_rejected", {
+      attemptedActivity: activityId,
+      occupiedBy: occupyingId,
+      time
+    });
+    return;
   }
 
-  if (state.schedule[time]) {
-    const displaced = state.schedule[time];
+  // Resolve Conflicts is intentionally flexible. If a scheduled activity
+  // is moved onto another scheduled activity, swap their time slots.
+  if (stepId === "resolve" && occupyingId && occupyingId !== activityId && oldTime) {
+    state.schedule[oldTime] = occupyingId;
+    state.schedule[time] = activityId;
+
+    log("activities_swapped", {
+      activity: activityId,
+      from: oldTime,
+      to: time,
+      swappedWith: occupyingId
+    });
+
+    renderCurrentStep();
+    return;
+  }
+
+  // If an unscheduled activity is placed on an occupied slot during
+  // Resolve, the displaced activity becomes explicitly unscheduled and
+  // therefore appears in the left-hand "Unscheduled activities" list.
+  if (stepId === "resolve" && occupyingId && occupyingId !== activityId && !oldTime) {
     delete state.schedule[time];
-    log("activity_displaced",{activity:displaced,time});
+    log("activity_displaced_to_unscheduled", {
+      activity: occupyingId,
+      time
+    });
+  }
+
+  if (oldTime) {
+    delete state.schedule[oldTime];
   }
 
   state.schedule[time] = activityId;
-  log("activity_placed",{activity:activityId,time});
+  log("activity_placed", { activity: activityId, time });
   renderCurrentStep();
 }
 
-function requiredPlacedForStep(stepId) {
+function missingActivitiesForStep(stepId) {
   const sc = currentScenario();
-  if (!["fixed","constrained","flexible"].includes(stepId)) return true;
-  const required = sc.activities.filter(a=>a.group===stepId).map(a=>a.id);
-  return required.every(id=>Object.values(state.schedule).includes(id));
+  if (!["fixed","constrained","flexible"].includes(stepId)) return [];
+
+  const scheduledIds = Object.values(state.schedule);
+  return sc.activities.filter(
+    a => a.group === stepId && !scheduledIds.includes(a.id)
+  );
+}
+
+function requiredPlacedForStep(stepId) {
+  return missingActivitiesForStep(stepId).length === 0;
 }
 
 function continueStep() {
   const step = currentStep();
+  const missing = missingActivitiesForStep(step.id);
 
-  if (!requiredPlacedForStep(step.id)) {
-    $("stepMessage").textContent = "Place all activities available in this strategy step before continuing.";
+  if (missing.length > 0) {
+    const names = missing.map(a => a.name).join(", ");
+    $("stepMessage").textContent =
+      `Still missing in this step: ${names}. Please place ${missing.length === 1 ? "this activity" : "these activities"} before continuing.`;
     $("stepMessage").className = "step-message error";
+
+    log("continue_blocked_missing_activities", {
+      step: step.id,
+      missing: missing.map(a => a.id).join(",")
+    });
     return;
   }
 
@@ -647,7 +703,10 @@ function showRevisionControls() {
   const remaining = state.steps.slice(state.currentStepIndex).filter(s => s.id !== "verify");
 
   $("reorderList").innerHTML = remaining.map(s =>
-    `<div class="reorder-item" draggable="true" data-id="${s.id}">${s.label}</div>`
+    `<div class="reorder-item" draggable="true" data-id="${s.id}">
+      <span class="reorder-grip">☰</span>
+      <span>${s.label}</span>
+    </div>`
   ).join("");
 
   enableReorder();
@@ -661,22 +720,121 @@ function enableReorder() {
   let dragged = null;
 
   document.querySelectorAll(".reorder-item").forEach(item => {
+    // Desktop / mouse HTML5 drag.
     item.addEventListener("dragstart", () => {
       dragged = item;
       item.classList.add("dragging");
     });
+
     item.addEventListener("dragend", () => {
       item.classList.remove("dragging");
       dragged = null;
     });
+
     item.addEventListener("dragover", e => {
       e.preventDefault();
       if (!dragged || dragged === item) return;
+
       const list = $("reorderList");
       const rect = item.getBoundingClientRect();
-      const after = e.clientY > rect.top + rect.height/2;
+      const after = e.clientY > rect.top + rect.height / 2;
       list.insertBefore(dragged, after ? item.nextSibling : item);
     });
+
+    // Mobile / touch long-press drag. Native HTML5 drag is not reliable
+    // on iPhone Safari, so touch reordering is handled explicitly.
+    let longPressTimer = null;
+    let touchDragging = false;
+    let activeTouchId = null;
+
+    const clearLongPress = () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+    };
+
+    item.addEventListener("touchstart", e => {
+      if (e.touches.length !== 1) return;
+
+      activeTouchId = e.touches[0].identifier;
+      const startX = e.touches[0].clientX;
+      const startY = e.touches[0].clientY;
+
+      clearLongPress();
+      longPressTimer = setTimeout(() => {
+        touchDragging = true;
+        dragged = item;
+        item.classList.add("dragging", "touch-dragging");
+        document.body.classList.add("workflow-touch-drag-active");
+
+        if (navigator.vibrate) {
+          try { navigator.vibrate(20); } catch (_) {}
+        }
+
+        log("workflow_touch_drag_started", {
+          step: item.dataset.id
+        });
+      }, 280);
+
+      item.dataset.touchStartX = startX;
+      item.dataset.touchStartY = startY;
+    }, { passive: true });
+
+    item.addEventListener("touchmove", e => {
+      const touch = [...e.touches].find(t => t.identifier === activeTouchId);
+      if (!touch) return;
+
+      const startX = Number(item.dataset.touchStartX || touch.clientX);
+      const startY = Number(item.dataset.touchStartY || touch.clientY);
+
+      // If the finger clearly moves before long-press activates, interpret
+      // it as normal page scrolling rather than a reorder gesture.
+      if (!touchDragging) {
+        const distance = Math.hypot(touch.clientX - startX, touch.clientY - startY);
+        if (distance > 10) clearLongPress();
+        return;
+      }
+
+      e.preventDefault();
+
+      const list = $("reorderList");
+      const candidates = [...list.querySelectorAll(".reorder-item")]
+        .filter(el => el !== item);
+
+      const target = candidates.find(el => {
+        const r = el.getBoundingClientRect();
+        return touch.clientY >= r.top && touch.clientY <= r.bottom;
+      });
+
+      if (!target) return;
+
+      const rect = target.getBoundingClientRect();
+      const after = touch.clientY > rect.top + rect.height / 2;
+      list.insertBefore(item, after ? target.nextSibling : target);
+    }, { passive: false });
+
+    const finishTouchDrag = () => {
+      clearLongPress();
+
+      if (touchDragging) {
+        log("workflow_touch_drag_finished", {
+          step: item.dataset.id,
+          remainingOrder: [...document.querySelectorAll(".reorder-item")]
+            .map(x => x.dataset.id)
+            .join(">")
+        });
+      }
+
+      touchDragging = false;
+      activeTouchId = null;
+      item.classList.remove("dragging", "touch-dragging");
+      document.body.classList.remove("workflow-touch-drag-active");
+      dragged = null;
+    };
+
+    item.addEventListener("touchend", finishTouchDrag, { passive: true });
+    item.addEventListener("touchcancel", finishTouchDrag, { passive: true });
   });
 }
 
