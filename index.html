@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rigid or Revisable? – Study Prototype v2</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main id="app">
+
+    <!-- START -->
+    <section id="startScreen" class="screen center-screen">
+      <div class="intro-card">
+        <p class="eyebrow">HCI Study Prototype</p>
+        <h1>Rigid or Revisable?</h1>
+        <p class="lead">
+          In this study, you will solve two scheduling problems using two different workflow styles.
+          The goal is to understand how people use structured problem-solving workflows when task conditions change.
+        </p>
+
+        <div class="study-guide">
+          <div class="guide-block">
+            <h3>What will you do?</h3>
+            <ol>
+              <li>Read the scheduling constraints carefully.</li>
+              <li>Follow the workflow steps shown on the left side of the interface.</li>
+              <li>Place activities into the available time slots.</li>
+              <li>During the task, an unexpected change may affect your current plan.</li>
+              <li>Adapt your schedule and continue until the final solution satisfies all constraints.</li>
+            </ol>
+          </div>
+
+          <div class="guide-block">
+            <h3>How are the two workflow styles different?</h3>
+            <div class="method-explain-grid">
+              <div class="method-explain">
+                <span class="method-tag">Rigid Workflow</span>
+                <p>
+                  The strategy steps follow a fixed order. You can adjust the schedule when needed,
+                  but the workflow itself cannot be reorganized.
+                </p>
+              </div>
+
+              <div class="method-explain">
+                <span class="method-tag">Revisable Workflow</span>
+                <p>
+                  The same structured workflow is used, but after an unexpected task change
+                  you can reorganize the remaining strategy steps if you think another order would work better.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="guide-note">
+            <strong>Important:</strong>
+            You will complete both versions. Each test uses a randomly selected but similarly structured
+            scheduling problem, so the activities may differ between attempts. There is no single “preferred” workflow style.
+          </div>
+        </div>
+
+        <p class="choice-prompt">Which workflow would you like to try first?</p>
+
+        <div class="condition-choice">
+          <button class="choice-card" data-start="rigid">
+            <span class="choice-icon">1→2→3</span>
+            <strong>Rigid Workflow</strong>
+            <small>The problem-solving workflow follows a fixed order.</small>
+          </button>
+
+          <button class="choice-card" data-start="revisable">
+            <span class="choice-icon">↕</span>
+            <strong>Revisable Workflow</strong>
+            <small>After a task change, you may reorganize the remaining workflow.</small>
+          </button>
+        </div>
+
+        <p class="tiny-note">
+          This choice only determines the starting order. After finishing the first test, the second workflow will follow automatically.
+        </p>
+      </div>
+    </section>
+
+    <!-- TASK -->
+    <section id="taskScreen" class="screen hidden">
+      <header class="study-header">
+        <div>
+          <p class="eyebrow">Problem-Solving Study</p>
+          <h1 id="trialTitle">Plan the Day</h1>
+        </div>
+        <div class="header-meta">
+          <span id="conditionPill" class="pill"></span>
+          <span id="progressPill" class="pill subtle"></span>
+        </div>
+      </header>
+
+      <div class="study-layout">
+        <aside class="workflow-card">
+          <div class="section-heading">
+            <p class="eyebrow">Your workflow</p>
+            <h2>Strategy Steps</h2>
+          </div>
+
+          <p id="workflowExplanation" class="support-text"></p>
+
+          <div id="workflowList" class="workflow-list"></div>
+
+          <button id="openRevisionBtn" class="ghost-btn full-width hidden">Revise workflow</button>
+
+          <div id="reorderArea" class="reorder-area hidden">
+            <div class="reorder-head">
+              <strong>Revise the remaining workflow</strong>
+              <span>Drag to reorder</span>
+            </div>
+            <div class="attention-note">Please review and adjust the remaining workflow here.</div>
+            <div id="reorderList" class="reorder-list"></div>
+            <div class="revision-actions">
+              <button id="applyRevisionBtn" class="full-width">Apply revised workflow</button>
+              <button id="cancelRevisionBtn" class="ghost-btn full-width">Keep current order</button>
+            </div>
+          </div>
+        </aside>
+
+        <section class="task-card">
+          <div class="task-top">
+            <div>
+              <p class="eyebrow">Current step</p>
+              <h2 id="currentStepTitle"></h2>
+              <p id="currentStepHelp" class="support-text"></p>
+            </div>
+            <button id="constraintsToggle" class="ghost-btn">View constraints</button>
+          </div>
+
+          <div id="constraintsPanel" class="constraints-panel hidden">
+            <div class="constraints-head">
+              <strong>Task Constraints</strong>
+              <span id="constraintCount"></span>
+            </div>
+            <ul id="constraintsList"></ul>
+          </div>
+
+          <div id="changeNotice" class="change-notice hidden">
+            <div class="notice-icon">!</div>
+            <div>
+              <strong>Unexpected task change</strong>
+              <p id="changeText"></p>
+            </div>
+          </div>
+
+          <div id="workspace"></div>
+
+          <div class="bottom-actions">
+            <div id="stepMessage" class="step-message"></div>
+            <button id="continueBtn">Continue</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- BETWEEN TESTS -->
+    <section id="betweenScreen" class="screen center-screen hidden">
+      <div class="intro-card compact-card">
+        <div class="success-mark">✓</div>
+        <p class="eyebrow">First test completed</p>
+        <h1 id="betweenTitle">Nice — one version is complete.</h1>
+        <p id="betweenText" class="lead"></p>
+        <button id="nextConditionBtn" class="primary-large"></button>
+      </div>
+    </section>
+
+    <!-- END -->
+    <section id="endScreen" class="screen center-screen hidden">
+      <div class="intro-card compact-card">
+        <div class="success-mark">✓</div>
+        <p class="eyebrow">Prototype complete</p>
+        <h1>Both workflow versions are finished.</h1>
+        <p class="lead">
+          Both tests are complete. Submit your anonymous study data to finish the session.
+        </p>
+        <div class="participant-summary">
+          <span>Anonymous Participant ID</span>
+          <strong id="participantIdDisplay"></strong>
+        </div>
+        <div id="submissionStatus" class="submission-status hidden"></div>
+        <div class="end-actions">
+          <button id="submitDataBtn" class="primary-large">Submit Data</button>
+          <button id="downloadDataBtn" class="ghost-btn">Download Backup</button>
+          <button id="restartBtn" class="ghost-btn">Restart prototype</button>
+        </div>
+        <p class="submission-note">
+          No name or email address is collected by this website unless those fields are explicitly added to the connected Google Form.
+        </p>
+      </div>
+    </section>
+
+    <!-- CHANGE MODAL -->
+    <div id="changeModal" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="warning-circle">!</div>
+        <p class="eyebrow">Unexpected change</p>
+        <h2>The problem has changed.</h2>
+        <p id="modalChangeText" class="lead small-lead"></p>
+
+        <div id="rigidModalCopy" class="mode-copy hidden">
+          Your workflow order is fixed. Continue with the next strategy step and adapt within that workflow.
+        </div>
+
+        <div id="revisableModalCopy" class="mode-copy hidden">
+          You may keep the current workflow or revise the order of the remaining problem-solving steps.
+        </div>
+
+        <button id="changeModalBtn" class="primary-large">Continue</button>
+      </div>
+    </div>
+
+  </main>
+
+  <iframe id="googleFormTarget" name="googleFormTarget" class="submission-frame" title="Google Form submission target"></iframe>
+
+  <script src="form-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
