@@ -286,6 +286,7 @@ function freshState() {
     revisionApplied:false,
     revisionOpen:false,
     canFinish:false,
+    renderedStepId:null,
     participantId:createParticipantId(),
     submitted:false,
     submissionPending:false,
@@ -334,6 +335,7 @@ function startTrial(condition, scenarioIndex) {
   state.revisionApplied = false;
   state.revisionOpen = false;
   state.canFinish = false;
+  state.renderedStepId = null;
   state.logs = [];
   log("trial_started", {
     scenarioKey: state.activeScenario.key,
@@ -405,6 +407,8 @@ function renderConstraints() {
 
 function renderCurrentStep() {
   const step = currentStep();
+  state.renderedStepId = step.id;
+  $("taskScreen").dataset.renderedStep = step.id;
   $("currentStepTitle").textContent = step.label;
   $("stepMessage").textContent = "";
   $("stepMessage").className = "step-message";
@@ -472,8 +476,11 @@ function renderPlanningStep(stepId) {
     columnTitle = "Unscheduled activities";
     emptyMessage = "All activities are currently scheduled. Adjust them directly in the schedule.";
   } else {
-    cards = sc.activities
-      .filter(a => !scheduledIds.includes(a.id) && a.group === stepId)
+    // Use the exact same source of truth as Continue validation.
+    // This guarantees that anything reported as "missing" is also visible
+    // in "Activities available in this step".
+    const missingForThisStep = missingActivitiesForStep(stepId);
+    cards = missingForThisStep
       .map(a => activityCardHTML(a, true))
       .join("");
   }
@@ -631,23 +638,50 @@ function requiredPlacedForStep(stepId) {
 }
 
 function continueStep() {
+  // Always validate the step the participant is actually looking at.
+  // Reordering the Revisable workflow can change indexes, so relying only
+  // on currentStepIndex can produce UI/validation mismatches.
+  const visibleStepId = state.renderedStepId || currentStep()?.id;
+  const visibleIndex = state.steps.findIndex(s => s.id === visibleStepId);
+
+  if (visibleIndex !== -1 && visibleIndex !== state.currentStepIndex) {
+    state.currentStepIndex = visibleIndex;
+  }
+
   const step = currentStep();
+  if (!step) return;
+
   const missing = missingActivitiesForStep(step.id);
 
   if (missing.length > 0) {
+    // Re-render first so a stale UI is repaired immediately.
+    renderCurrentStep();
+
     const names = missing.map(a => a.name).join(", ");
     $("stepMessage").textContent =
       `Still missing in this step: ${names}. Please place ${missing.length === 1 ? "this activity" : "these activities"} before continuing.`;
     $("stepMessage").className = "step-message error";
 
     log("continue_blocked_missing_activities", {
-      step: step.id,
+      renderedStep: visibleStepId,
+      validatedStep: step.id,
       missing: missing.map(a => a.id).join(",")
     });
+
+    // On narrow/mobile screens, bring the available activities back into view.
+    const activityPool = document.getElementById("activityPool");
+    if (activityPool && activityPool.children.length > 0) {
+      setTimeout(() => {
+        activityPool.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 50);
+    }
     return;
   }
 
-  log("step_completed",{step:step.id});
+  log("step_completed", {
+    step: step.id,
+    renderedStep: visibleStepId
+  });
 
   // Trigger unexpected change immediately after constrained activities are placed.
   if (step.id === "constrained" && !state.changed) {
@@ -848,7 +882,10 @@ function applyRevision() {
   state.revisionApplied = true;
   state.revisionOpen = false;
 
-  log("workflow_revised", { remainingOrder: ids.join(">") });
+  log("workflow_revised", {
+    remainingOrder: ids.join(">"),
+    nextActiveStep: state.steps[state.currentStepIndex]?.id || null
+  });
 
   $("reorderArea").classList.add("hidden");
   $("reorderArea").classList.remove("highlight-attention");

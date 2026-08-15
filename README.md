@@ -36,3 +36,13 @@ Before collecting real participant data, run one complete test and confirm that 
 - Resolve Conflicts supports intuitive swapping when a scheduled activity is moved onto another scheduled activity.
 - Added long-press touch reordering for Revisable workflow steps on iPhone/iOS Safari and other touch devices.
 - Added a visible drag grip to workflow steps.
+
+
+## v2.11 — Revisable step/UI synchronization fix
+
+- Fixed a Revisable-workflow state mismatch where the interface could show no available activities while Continue validated a different step.
+- The application now stores the exact workflow step currently rendered on screen.
+- Continue validates that rendered step, not a potentially stale numeric index.
+- Activity cards and Continue validation now use the same `missingActivitiesForStep()` source of truth.
+- If a stale UI is detected, Continue re-renders the current step and reveals the missing activities.
+- On mobile, the page scrolls toward the missing activity list when Continue is blocked.

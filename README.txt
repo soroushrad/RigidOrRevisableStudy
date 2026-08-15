@@ -115,3 +115,10 @@ V2.10 — MOBILE + MISSING-ACTIVITY FIX
 - Fixed hidden missing-activity states caused by dropping onto occupied slots.
 - Continue now reports the exact missing activity names.
 - Added long-press touch drag for Revisable workflow steps on mobile/iPhone.
+
+
+V2.11 — REVISABLE STEP SYNC FIX
+-------------------------------
+- Fixed mismatch between visible activity list and Continue validation after workflow revision.
+- UI and validation now share one source of truth for missing activities.
+- The exact rendered workflow step is tracked and validated.
