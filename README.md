@@ -46,3 +46,23 @@ Before collecting real participant data, run one complete test and confirm that 
 - Activity cards and Continue validation now use the same `missingActivitiesForStep()` source of truth.
 - If a stale UI is detected, Continue re-renders the current step and reveals the missing activities.
 - On mobile, the page scrolls toward the missing activity list when Continue is blocked.
+
+
+## v2.12 — Revisable workflow logic fix
+
+- Fixed the root cause of the back-and-forth behavior after the unexpected task change.
+- Revisable mode now renders the newly active workflow step before opening the revision editor.
+- Resolve Conflicts no longer exposes activities from placement steps that have not yet been completed.
+- If Resolve Conflicts is moved before Place Flexible Activities, flexible activities stay hidden until the Flexible step is actually reached.
+- If Place Flexible Activities comes first, its activities appear there normally; Resolve then operates on the resulting schedule.
+- Added explicit tracking of actually completed workflow steps, independent of reordered indexes.
+
+
+## v2.13 — Submission status fix
+
+- Removed the previous 3-second optimistic success fallback.
+- The website no longer claims that Google definitely recorded a response.
+- After the hidden Google Form request completes, the UI reports only that the submission request completed.
+- If the Google Form navigation does not complete within 12 seconds, an error is shown.
+- Participants can retry submission.
+- Download Backup remains available as a safety mechanism.

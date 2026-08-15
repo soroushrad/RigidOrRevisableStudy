@@ -287,6 +287,7 @@ function freshState() {
     revisionOpen:false,
     canFinish:false,
     renderedStepId:null,
+    completedStepIds:[],
     participantId:createParticipantId(),
     submitted:false,
     submissionPending:false,
@@ -336,6 +337,7 @@ function startTrial(condition, scenarioIndex) {
   state.revisionOpen = false;
   state.canFinish = false;
   state.renderedStepId = null;
+  state.completedStepIds = [];
   state.logs = [];
   log("trial_started", {
     scenarioKey: state.activeScenario.key,
@@ -370,15 +372,23 @@ function renderWorkflow() {
     const d = document.createElement("div");
     d.className = "workflow-step";
     if (i === state.currentStepIndex) d.classList.add("current");
-    if (i < state.currentStepIndex) d.classList.add("done");
+    if (state.completedStepIds.includes(s.id)) d.classList.add("done");
     d.innerHTML = `<div class="workflow-index">${i+1}</div><div class="workflow-label">${s.label}</div>`;
     $("workflowList").appendChild(d);
   });
 
+  const unfinishedFromHere = state.steps
+    .slice(state.currentStepIndex)
+    .filter(s =>
+      s.id !== "verify" &&
+      (s.id === currentStep()?.id || !state.completedStepIds.includes(s.id))
+    );
+
   const canReviseNow =
     state.currentCondition === "revisable" &&
     state.changed &&
-    currentStep()?.id !== "verify";
+    currentStep()?.id !== "verify" &&
+    unfinishedFromHere.length >= 2;
 
   $("openRevisionBtn").classList.toggle("hidden", !canReviseNow || state.revisionOpen);
 
@@ -467,14 +477,22 @@ function renderPlanningStep(stepId) {
   let emptyMessage = "No activities available here.";
 
   if (stepId === "resolve") {
-    // In Resolve Conflicts, activities already placed in the timeline must NOT
-    // be duplicated in the left column. Only activities that became
-    // unscheduled (for example because another activity displaced them)
-    // appear here so the participant can place them again.
-    const unscheduled = sc.activities.filter(a => !scheduledIds.includes(a.id));
+    // Resolve Conflicts can only use activity groups that have already been
+    // introduced by completed placement steps. If Resolve is moved before
+    // Flexible, flexible activities must stay hidden until Flexible is reached.
+    const introducedGroups = new Set(
+      state.completedStepIds.filter(id =>
+        ["fixed", "constrained", "flexible"].includes(id)
+      )
+    );
+
+    const unscheduled = sc.activities.filter(
+      a => !scheduledIds.includes(a.id) && introducedGroups.has(a.group)
+    );
+
     cards = unscheduled.map(a => activityCardHTML(a, true)).join("");
     columnTitle = "Unscheduled activities";
-    emptyMessage = "All activities are currently scheduled. Adjust them directly in the schedule.";
+    emptyMessage = "All activities introduced so far are scheduled. Adjust them directly in the schedule.";
   } else {
     // Use the exact same source of truth as Continue validation.
     // This guarantees that anything reported as "missing" is also visible
@@ -678,9 +696,14 @@ function continueStep() {
     return;
   }
 
+  if (!state.completedStepIds.includes(step.id)) {
+    state.completedStepIds.push(step.id);
+  }
+
   log("step_completed", {
     step: step.id,
-    renderedStep: visibleStepId
+    renderedStep: visibleStepId,
+    completedSteps: state.completedStepIds.join(">")
   });
 
   // Trigger unexpected change immediately after constrained activities are placed.
@@ -713,10 +736,12 @@ function afterChangeModal() {
   // Move to the next original step: flexible.
   state.currentStepIndex++;
 
+  // Always render the newly active step before opening the revision editor.
+  // This prevents the old constrained-step workspace from remaining visible.
+  renderCurrentStep();
+
   if (state.currentCondition === "revisable") {
     showRevisionControls();
-  } else {
-    renderCurrentStep();
   }
 }
 
@@ -732,9 +757,14 @@ function showRevisionControls() {
   $("reorderArea").classList.remove("hidden");
   $("reorderArea").classList.add("highlight-attention");
 
-  // Only the current and future actionable steps can be revised.
+  // Only the current step and unfinished future actionable steps can be revised.
   // Completed steps stay fixed; Verify remains pinned last.
-  const remaining = state.steps.slice(state.currentStepIndex).filter(s => s.id !== "verify");
+  const remaining = state.steps
+    .slice(state.currentStepIndex)
+    .filter(s =>
+      s.id !== "verify" &&
+      (s.id === currentStep()?.id || !state.completedStepIds.includes(s.id))
+    );
 
   $("reorderList").innerHTML = remaining.map(s =>
     `<div class="reorder-item" draggable="true" data-id="${s.id}">
@@ -873,12 +903,30 @@ function enableReorder() {
 }
 
 function applyRevision() {
-  const ids = [...document.querySelectorAll(".reorder-item")].map(x=>x.dataset.id);
-  const completed = state.steps.slice(0, state.currentStepIndex);
-  const verify = state.steps.find(s => s.id === "verify");
-  const reordered = ids.map(id => state.steps.find(s => s.id === id)).filter(Boolean);
+  const ids = [...document.querySelectorAll(".reorder-item")].map(x => x.dataset.id);
 
-  state.steps = [...completed, ...reordered, verify];
+  const prefix = state.steps.slice(0, state.currentStepIndex);
+  const verify = state.steps.find(s => s.id === "verify");
+  const editableSet = new Set(ids);
+
+  const reordered = ids
+    .map(id => state.steps.find(s => s.id === id))
+    .filter(Boolean);
+
+  // Preserve any completed/non-editable tail steps defensively.
+  const preservedTail = state.steps
+    .slice(state.currentStepIndex)
+    .filter(s => s.id !== "verify" && !editableSet.has(s.id));
+
+  state.steps = [...prefix, ...reordered, ...preservedTail, verify];
+
+  // The first item in the revised remaining workflow becomes the active step.
+  const nextId = ids[0];
+  const nextIndex = state.steps.findIndex(s => s.id === nextId);
+  if (nextIndex >= 0) {
+    state.currentStepIndex = nextIndex;
+  }
+
   state.revisionApplied = true;
   state.revisionOpen = false;
 
@@ -1057,13 +1105,12 @@ function updateSubmissionUI(type="",message=""){
   const box=$("submissionStatus"), btn=$("submitDataBtn");
   box.className="submission-status hidden"; box.textContent="";
   if(type){box.classList.remove("hidden");box.classList.add(type);box.textContent=message;}
-  if(state.submitted){btn.disabled=true;btn.textContent="Data Submitted";}
-  else if(state.submissionPending){btn.disabled=true;btn.textContent="Submitting…";}
+  if(state.submissionPending){btn.disabled=true;btn.textContent="Submitting…";}
   else{btn.disabled=false;btn.textContent="Submit Data";}
 }
 
 function submitStudyData(){
-  if(state.submitted||state.submissionPending)return;
+  if(state.submissionPending)return;
   if(state.allTrials.length!==2){updateSubmissionUI("error","Both tests must be completed before data can be submitted.");return;}
   const cfg=window.STUDY_FORM_CONFIG||{};
   if(!cfg.enabled||!cfg.actionUrl||!cfg.entries){updateSubmissionUI("error","Google Form is not connected yet. Configure form-config.js first.");return;}
@@ -1078,10 +1125,56 @@ function submitStudyData(){
   const form=document.createElement("form"); form.method="POST"; form.action=cfg.actionUrl; form.target="googleFormTarget"; form.style.display="none";
   Object.entries(values).forEach(([name,value])=>{if(!name||!name.startsWith("entry."))return;const input=document.createElement("input");input.type="hidden";input.name=name;input.value=value??"";form.appendChild(input);});
   document.body.appendChild(form); state.submissionPending=true; updateSubmissionUI("sending","Submitting your study data…"); log("data_submission_started",{participantId:state.participantId});
-  const iframe=$("googleFormTarget"); let handled=false;
-  const markSent=()=>{if(handled||!state.submissionPending)return;handled=true;state.submissionPending=false;state.submitted=true;log("data_submission_sent",{participantId:state.participantId});try{localStorage.setItem(`rigid-or-revisable-submitted-${state.participantId}`,new Date().toISOString())}catch(e){}updateSubmissionUI("success","Submission sent. Thank you — you can now close this page.");form.remove();};
-  const onLoad=()=>{iframe.removeEventListener("load",onLoad);setTimeout(markSent,250);};
-  iframe.addEventListener("load",onLoad); form.submit(); setTimeout(markSent,3000);
+  const iframe = $("googleFormTarget");
+  let handled = false;
+
+  const finishRequest = () => {
+    if (handled || !state.submissionPending) return;
+    handled = true;
+    state.submissionPending = false;
+
+    log("data_submission_request_completed", {
+      participantId: state.participantId
+    });
+
+    // Cross-origin Google Forms responses cannot be inspected from GitHub Pages.
+    // Therefore we do NOT claim that Google recorded the row; we only know that
+    // the browser completed the form-response navigation.
+    updateSubmissionUI(
+      "success",
+      "Submission request completed. Keep this page open until you confirm the response appears in the study sheet."
+    );
+
+    $("submitDataBtn").disabled = false;
+    $("submitDataBtn").textContent = "Submit Again";
+
+    form.remove();
+  };
+
+  const failRequest = () => {
+    if (handled || !state.submissionPending) return;
+    handled = true;
+    state.submissionPending = false;
+    updateSubmissionUI(
+      "error",
+      "The submission could not be confirmed. Please use Download Backup and contact the study administrator."
+    );
+    $("submitDataBtn").disabled = false;
+    $("submitDataBtn").textContent = "Try Submit Again";
+    form.remove();
+  };
+
+  const onLoad = () => {
+    iframe.removeEventListener("load", onLoad);
+    setTimeout(finishRequest, 250);
+  };
+
+  iframe.addEventListener("load", onLoad);
+  form.submit();
+
+  // No optimistic "success after 3 seconds" fallback anymore.
+  // If Google never completes the hidden form navigation, show an error.
+  setTimeout(failRequest, 12000);
 }
 
 document.querySelectorAll("[data-start]").forEach(btn=>{

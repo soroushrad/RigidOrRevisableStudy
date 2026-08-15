@@ -122,3 +122,18 @@ V2.11 — REVISABLE STEP SYNC FIX
 - Fixed mismatch between visible activity list and Continue validation after workflow revision.
 - UI and validation now share one source of truth for missing activities.
 - The exact rendered workflow step is tracked and validated.
+
+
+V2.12 — WORKFLOW LOGIC FIX
+--------------------------
+- Fixed stale workspace after unexpected change in Revisable mode.
+- Resolve Conflicts only exposes activities from completed placement steps.
+- Flexible activities no longer appear early when Resolve is moved ahead of Flexible.
+- Added actual completed-step tracking for reordered workflows.
+
+
+V2.13 — SUBMISSION STATUS FIX
+-----------------------------
+- Removed false-positive automatic "Data Submitted" status.
+- Submission can now be retried.
+- A timeout now reports an error instead of success.
