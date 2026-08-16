@@ -262,6 +262,25 @@ const BASE_STEPS = [
 
 const SLOTS = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00"];
 
+const CONDITION_ORDERS = [
+  ["rigid", "revisable", "revisable", "rigid"],
+  ["revisable", "rigid", "rigid", "revisable"],
+  ["rigid", "revisable", "rigid", "revisable"],
+  ["revisable", "rigid", "revisable", "rigid"]
+];
+
+function participantHash(value) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = ((hash << 5) - hash + value.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
+function assignConditionOrder(participantId) {
+  return [...CONDITION_ORDERS[participantHash(participantId) % CONDITION_ORDERS.length]];
+}
+
 function createParticipantId() {
   const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0,14);
   const random = Math.random().toString(36).slice(2,8).toUpperCase();
@@ -271,10 +290,15 @@ function createParticipantId() {
 let state = freshState();
 
 function freshState() {
+  const participantId = createParticipantId();
+  const conditionOrder = assignConditionOrder(participantId);
+
   return {
-    firstCondition:null,
+    firstCondition:conditionOrder[0],
+    conditionOrder,
     currentCondition:null,
     completedConditions:[],
+    currentTrialIndex:0,
     scenarioIndex:0,
     activeScenario:null,
     usedScenarioKeys:[],
@@ -288,24 +312,25 @@ function freshState() {
     canFinish:false,
     renderedStepId:null,
     completedStepIds:[],
-    participantId:createParticipantId(),
+    participantId,
     submitted:false,
     submissionPending:false,
     logs:[],
-    allTrials:[]
+    allTrials:[],
+    pendingTrial:null
   };
 }
 
 const $ = id => document.getElementById(id);
 
 function showOnly(id) {
-  ["startScreen","taskScreen","betweenScreen","endScreen"].forEach(x => $(x).classList.add("hidden"));
+  ["startScreen","taskScreen","questionnaireScreen","betweenScreen","endScreen"].forEach(x => $(x).classList.add("hidden"));
   $(id).classList.remove("hidden");
 }
 
 function log(action, extra={}) {
   state.logs.push({
-    time:new Date().toISOString(),
+    timestamp:new Date().toISOString(),
     condition:state.currentCondition,
     scenario:state.scenarioIndex,
     step:state.steps[state.currentStepIndex]?.id || null,
@@ -314,17 +339,18 @@ function log(action, extra={}) {
   });
 }
 
-function startStudy(condition) {
-  state.firstCondition = condition;
-  startTrial(condition, 0);
+function startStudy() {
+  state.currentTrialIndex = 0;
+  state.firstCondition = state.conditionOrder[0];
+  startTrial(state.conditionOrder[0], 0);
 }
 
-function startTrial(condition, scenarioIndex) {
+function startTrial(condition, trialIndex) {
   state.currentCondition = condition;
-  state.scenarioIndex = scenarioIndex;
+  state.currentTrialIndex = trialIndex;
+  state.scenarioIndex = trialIndex;
 
-  // Randomly choose a balanced scenario. Within the same study session,
-  // do not reuse the same semantic scenario for the second condition.
+  // Four different semantic scenarios are used within one participant session.
   state.activeScenario = generateScenario(state.usedScenarioKeys);
   state.usedScenarioKeys.push(state.activeScenario.key);
 
@@ -339,10 +365,14 @@ function startTrial(condition, scenarioIndex) {
   state.renderedStepId = null;
   state.completedStepIds = [];
   state.logs = [];
+  state.pendingTrial = null;
+
   log("trial_started", {
-    scenarioKey: state.activeScenario.key,
-    scenarioTitle: state.activeScenario.title
+    scenarioKey:state.activeScenario.key,
+    scenarioTitle:state.activeScenario.title,
+    trialIndex
   });
+
   showOnly("taskScreen");
   renderTrial();
 }
@@ -354,7 +384,7 @@ function renderTrial() {
   const sc = currentScenario();
   $("trialTitle").textContent = sc.title;
   $("conditionPill").textContent = state.currentCondition === "rigid" ? "Rigid Workflow" : "Revisable Workflow";
-  $("progressPill").textContent = `Test ${state.completedConditions.length + 1} of 2`;
+  $("progressPill").textContent = `Trial ${state.currentTrialIndex + 1} of 4`;
 
   $("workflowExplanation").textContent =
     state.currentCondition === "rigid"
@@ -597,9 +627,9 @@ function placeActivity(activityId, time, stepId) {
       `${time} is already occupied by ${occupying?.name || "another activity"}. Choose an empty time slot.`;
     $("stepMessage").className = "step-message error";
     log("occupied_slot_rejected", {
-      attemptedActivity: activityId,
-      occupiedBy: occupyingId,
-      time
+      attemptedActivity:activityId,
+      occupiedBy:occupyingId,
+      scheduledTime:time
     });
     return;
   }
@@ -611,10 +641,11 @@ function placeActivity(activityId, time, stepId) {
     state.schedule[time] = activityId;
 
     log("activities_swapped", {
-      activity: activityId,
-      from: oldTime,
-      to: time,
-      swappedWith: occupyingId
+      activity:activityId,
+      scheduledTime:time,
+      from:oldTime,
+      to:time,
+      swappedWith:occupyingId
     });
 
     renderCurrentStep();
@@ -627,8 +658,8 @@ function placeActivity(activityId, time, stepId) {
   if (stepId === "resolve" && occupyingId && occupyingId !== activityId && !oldTime) {
     delete state.schedule[time];
     log("activity_displaced_to_unscheduled", {
-      activity: occupyingId,
-      time
+      activity:occupyingId,
+      scheduledTime:time
     });
   }
 
@@ -637,7 +668,11 @@ function placeActivity(activityId, time, stepId) {
   }
 
   state.schedule[time] = activityId;
-  log("activity_placed", { activity: activityId, time });
+  log("activity_placed", {
+    activity:activityId,
+    scheduledTime:time,
+    ...(oldTime && oldTime !== time ? {from:oldTime, to:time, rePlacement:true} : {})
+  });
   renderCurrentStep();
 }
 
@@ -1006,27 +1041,103 @@ function returnToResolve() {
   $("stepMessage").className = "step-message success";
 }
 
-function completeTrial() {
-  if (!state.canFinish) return;
-  state.canFinish = false;
-
-  state.allTrials.push({
+function buildPendingTrial() {
+  return {
     condition:state.currentCondition,
     scenario:state.scenarioIndex,
     scenarioKey:currentScenario().key,
     scenarioTitle:currentScenario().title,
+    trialIndex:state.currentTrialIndex,
+    initialWorkflow:BASE_STEPS.map(s=>s.id),
     finalSchedule:{...state.schedule},
     finalWorkflow:state.steps.map(s=>s.id),
     logs:[...state.logs]
-  });
-  state.completedConditions.push(state.currentCondition);
+  };
+}
 
-  if (state.completedConditions.length === 1) {
-    const next = state.currentCondition === "rigid" ? "revisable" : "rigid";
+function renderLikertScales() {
+  document.querySelectorAll(".rating-question").forEach(question => {
+    const key = question.dataset.rating;
+    const scale = question.querySelector(".likert-scale");
+    scale.innerHTML = "";
+    question.querySelectorAll(".likert-labels").forEach(el => el.remove());
+
+    for (let value = 1; value <= 7; value++) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "likert-option";
+      wrapper.innerHTML = `
+        <input type="radio" id="${key}-${value}" name="${key}" value="${value}">
+        <label for="${key}-${value}">${value}</label>
+      `;
+      scale.appendChild(wrapper);
+    }
+
+    const labels = document.createElement("div");
+    labels.className = "likert-labels";
+    labels.innerHTML = "<span>Strongly disagree</span><span>Strongly agree</span>";
+    question.appendChild(labels);
+  });
+}
+
+function openPostTrialQuestionnaire() {
+  state.pendingTrial = buildPendingTrial();
+  $("ratingsForm").reset();
+  $("ratingsError").classList.add("hidden");
+  renderLikertScales();
+  showOnly("questionnaireScreen");
+}
+
+function completeTrial() {
+  if (!state.canFinish) return;
+  state.canFinish = false;
+  openPostTrialQuestionnaire();
+}
+
+function submitPostTrialRatings(event) {
+  event.preventDefault();
+
+  const keys = ["control","constraint","helpfulness","difficulty"];
+  const ratings = {};
+  let complete = true;
+
+  keys.forEach(key => {
+    const selected = document.querySelector(`input[name="${key}"]:checked`);
+    if (!selected) {
+      complete = false;
+    } else {
+      ratings[key] = Number(selected.value);
+    }
+  });
+
+  if (!complete) {
+    $("ratingsError").classList.remove("hidden");
+    return;
+  }
+
+  const ratingsSubmittedAt = new Date().toISOString();
+  const trial = {
+    ...state.pendingTrial,
+    ratings,
+    ratingsSubmittedAt
+  };
+
+  state.allTrials.push(trial);
+  state.completedConditions.push(state.currentCondition);
+  state.pendingTrial = null;
+
+  const completedCount = state.allTrials.length;
+
+  if (completedCount < 4) {
+    const nextIndex = completedCount;
+    const next = state.conditionOrder[nextIndex];
+
+    $("betweenTitle").textContent = `Trial ${completedCount} of 4 complete.`;
     $("betweenText").textContent =
-      `You completed the ${state.currentCondition === "rigid" ? "Rigid" : "Revisable"} version. Next you will try the ${next === "rigid" ? "Rigid" : "Revisable"} workflow with a different scheduling problem.`;
-    $("nextConditionBtn").textContent = `Start ${next === "rigid" ? "Rigid" : "Revisable"} Test`;
+      `Next you will complete Trial ${nextIndex + 1} of 4 using the ${next === "rigid" ? "Rigid" : "Revisable"} workflow with a different scheduling problem.`;
+    $("nextConditionBtn").textContent =
+      `Start Trial ${nextIndex + 1} — ${next === "rigid" ? "Rigid" : "Revisable"}`;
     $("nextConditionBtn").dataset.next = next;
+    $("nextConditionBtn").dataset.trialIndex = String(nextIndex);
     showOnly("betweenScreen");
   } else {
     showOnly("endScreen");
@@ -1083,9 +1194,16 @@ function nameOf(id){ return currentScenario().activities.find(a=>a.id===id)?.nam
 
 function buildStudyPayload() {
   return {
-    study:"Rigid or Revisable", version:"2.8", participantId:state.participantId,
-    completedAtClient:new Date().toISOString(), firstCondition:state.firstCondition,
-    completedConditions:state.completedConditions, userAgent:navigator.userAgent, trials:state.allTrials
+    study:"Rigid or Revisable",
+    version:"2.9",
+    participantId:state.participantId,
+    startedAtClient:state.allTrials[0]?.logs?.[0]?.timestamp || null,
+    completedAtClient:new Date().toISOString(),
+    firstCondition:state.firstCondition,
+    conditionOrder:[...state.conditionOrder],
+    completedConditions:[...state.completedConditions],
+    userAgent:navigator.userAgent,
+    trials:state.allTrials
   };
 }
 
@@ -1097,8 +1215,10 @@ function downloadData() {
 }
 
 function scenarioForCondition(condition){
-  const trial=state.allTrials.find(t=>t.condition===condition);
-  return trial ? `${trial.scenarioTitle||""} (${trial.scenarioKey||""})` : "";
+  return state.allTrials
+    .filter(t=>t.condition===condition)
+    .map(t=>`${t.scenarioTitle||""} (${t.scenarioKey||""})`)
+    .join(" | ");
 }
 
 function updateSubmissionUI(type="",message=""){
@@ -1111,7 +1231,7 @@ function updateSubmissionUI(type="",message=""){
 
 function submitStudyData(){
   if(state.submissionPending)return;
-  if(state.allTrials.length!==2){updateSubmissionUI("error","Both tests must be completed before data can be submitted.");return;}
+  if(state.allTrials.length!==4){updateSubmissionUI("error","All four trials must be completed before data can be submitted.");return;}
   const cfg=window.STUDY_FORM_CONFIG||{};
   if(!cfg.enabled||!cfg.actionUrl||!cfg.entries){updateSubmissionUI("error","Google Form is not connected yet. Configure form-config.js first.");return;}
   const payload=buildStudyPayload();
@@ -1177,13 +1297,18 @@ function submitStudyData(){
   setTimeout(failRequest, 12000);
 }
 
-document.querySelectorAll("[data-start]").forEach(btn=>{
-  btn.addEventListener("click",()=>startStudy(btn.dataset.start));
-});
+$("startStudyBtn").addEventListener("click", startStudy);
 
 $("constraintsToggle").addEventListener("click",()=>{
-  $("constraintsPanel").classList.toggle("hidden");
-  log("constraints_toggled");
+  const panel = $("constraintsPanel");
+  const wasHidden = panel.classList.contains("hidden");
+  panel.classList.toggle("hidden");
+
+  if (wasHidden) {
+    log("constraints_opened");
+  } else {
+    log("constraints_closed");
+  }
 });
 
 $("continueBtn").addEventListener("click", () => {
@@ -1199,9 +1324,13 @@ $("applyRevisionBtn").addEventListener("click", applyRevision);
 $("cancelRevisionBtn").addEventListener("click", cancelRevision);
 
 $("nextConditionBtn").addEventListener("click",()=>{
-  startTrial($("nextConditionBtn").dataset.next, 1);
+  startTrial(
+    $("nextConditionBtn").dataset.next,
+    Number($("nextConditionBtn").dataset.trialIndex)
+  );
 });
 
+$("ratingsForm").addEventListener("submit", submitPostTrialRatings);
 $("submitDataBtn").addEventListener("click", submitStudyData);
 $("downloadDataBtn").addEventListener("click", downloadData);
 $("restartBtn").addEventListener("click",()=>{

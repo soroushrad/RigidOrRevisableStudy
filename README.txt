@@ -137,3 +137,21 @@ V2.13 — SUBMISSION STATUS FIX
 - Removed false-positive automatic "Data Submitted" status.
 - Submission can now be retried.
 - A timeout now reports an error instead of success.
+
+
+V2.14 BUILD / STUDY DATA VERSION 2.9
+------------------------------------
+- Standardized event timestamps.
+- Added constraint-panel open/close logs.
+- Added post-trial questionnaire after every trial.
+- Expanded main study from 2 to 4 trials (2 Rigid + 2 Revisable).
+- Added balanced condition-order assignment.
+- Enforced four different scenarios per participant session.
+- Added conditionOrder and questionnaire data to JSON.
+
+
+V2.15 — FINAL UI CLEANUP
+------------------------
+- Removed non-interactive Rigid/Revisable cards from the start screen.
+- Start Study now follows the study instructions directly.
+- Experimental logic and data schema remain unchanged.

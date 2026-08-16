@@ -66,3 +66,38 @@ Before collecting real participant data, run one complete test and confirm that 
 - If the Google Form navigation does not complete within 12 seconds, an error is shown.
 - Participants can retry submission.
 - Download Backup remains available as a safety mechanism.
+
+
+## v2.9 data-collection schema / build v2.14
+
+### Main changes
+- Four main trials per participant: exactly 2 Rigid and 2 Revisable.
+- Condition order is assigned from four counterbalanced sequences using a pseudonymous participant-ID hash.
+- Four non-repeating semantic scenarios are selected within each session.
+- A required four-item 7-point Likert questionnaire appears after every valid trial.
+- Event logs now use `timestamp` exclusively for real ISO event time.
+- Schedule slots use `scheduledTime`; swap events retain `from` and `to`.
+- Active constraint-panel openings are logged as `constraints_opened` (and closes as `constraints_closed`).
+- Failed verification attempts remain separate log records.
+- Full placement / re-placement / swap history is retained.
+- Trial objects include `initialWorkflow`, `finalWorkflow`, `ratings`, and `ratingsSubmittedAt`.
+- Top-level JSON includes `conditionOrder`.
+- Study data version is now `2.9`.
+
+### Version compatibility
+Version 2.8 pilot data uses:
+- `time` instead of `timestamp` for some event timestamps,
+- only two trials,
+- no post-trial ratings,
+- no `conditionOrder`.
+
+Do not concatenate v2.8 and v2.9 rows without a normalization/migration step.
+
+
+## v2.15 final UI cleanup
+
+- Removed the non-interactive Rigid/Revisable cards from the start screen.
+- The study explanation still describes both workflow conditions.
+- Participants now proceed directly from the instructions to **Start Study**.
+- Counterbalanced automatic condition assignment is unchanged.
+- Study data schema/version remains `2.9`.

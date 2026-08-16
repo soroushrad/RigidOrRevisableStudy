@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Rigid or Revisable? – Study Prototype v2</title>
+  <title>Rigid or Revisable? – HCI Study v2.9</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -15,7 +15,7 @@
         <p class="eyebrow">HCI Study Prototype</p>
         <h1>Rigid or Revisable?</h1>
         <p class="lead">
-          In this study, you will solve two scheduling problems using two different workflow styles.
+          In this study, you will solve four scheduling problems using two different workflow styles.
           The goal is to understand how people use structured problem-solving workflows when task conditions change.
         </p>
 
@@ -54,29 +54,15 @@
 
           <div class="guide-note">
             <strong>Important:</strong>
-            You will complete both versions. Each test uses a randomly selected but similarly structured
-            scheduling problem, so the activities may differ between attempts. There is no single “preferred” workflow style.
+            You will complete four trials: two with the Rigid workflow and two with the Revisable workflow.
+            Each trial uses a different, similarly structured scheduling problem. The condition order is assigned automatically.
           </div>
         </div>
 
-        <p class="choice-prompt">Which workflow would you like to try first?</p>
-
-        <div class="condition-choice">
-          <button class="choice-card" data-start="rigid">
-            <span class="choice-icon">1→2→3</span>
-            <strong>Rigid Workflow</strong>
-            <small>The problem-solving workflow follows a fixed order.</small>
-          </button>
-
-          <button class="choice-card" data-start="revisable">
-            <span class="choice-icon">↕</span>
-            <strong>Revisable Workflow</strong>
-            <small>After a task change, you may reorganize the remaining workflow.</small>
-          </button>
-        </div>
+        <button id="startStudyBtn" class="primary-large start-study-btn">Start Study</button>
 
         <p class="tiny-note">
-          This choice only determines the starting order. After finishing the first test, the second workflow will follow automatically.
+          The application automatically assigns a balanced four-trial condition order.
         </p>
       </div>
     </section>
@@ -157,12 +143,53 @@
       </div>
     </section>
 
+
+    <!-- POST-TRIAL QUESTIONNAIRE -->
+    <section id="questionnaireScreen" class="screen center-screen hidden">
+      <div class="intro-card questionnaire-card">
+        <p class="eyebrow">Post-trial questionnaire</p>
+        <h1>How did this trial feel?</h1>
+        <p class="lead">
+          Please answer all four questions before continuing. Use the 7-point scale from
+          <strong>1 = Strongly disagree</strong> to <strong>7 = Strongly agree</strong>.
+        </p>
+
+        <form id="ratingsForm" class="ratings-form">
+          <div class="rating-question" data-rating="control">
+            <div class="rating-prompt">I felt in control of how I solved the task.</div>
+            <div class="likert-scale"></div>
+          </div>
+
+          <div class="rating-question" data-rating="constraint">
+            <div class="rating-prompt">I felt constrained by the workflow while solving the task.</div>
+            <div class="likert-scale"></div>
+          </div>
+
+          <div class="rating-question" data-rating="helpfulness">
+            <div class="rating-prompt">The workflow helped me organize the task.</div>
+            <div class="likert-scale"></div>
+          </div>
+
+          <div class="rating-question" data-rating="difficulty">
+            <div class="rating-prompt">I found this task difficult to complete.</div>
+            <div class="likert-scale"></div>
+          </div>
+
+          <div id="ratingsError" class="ratings-error hidden">
+            Please answer all four questions before continuing.
+          </div>
+
+          <button type="submit" class="primary-large">Submit Ratings & Continue</button>
+        </form>
+      </div>
+    </section>
+
     <!-- BETWEEN TESTS -->
     <section id="betweenScreen" class="screen center-screen hidden">
       <div class="intro-card compact-card">
         <div class="success-mark">✓</div>
-        <p class="eyebrow">First test completed</p>
-        <h1 id="betweenTitle">Nice — one version is complete.</h1>
+        <p class="eyebrow">Trial completed</p>
+        <h1 id="betweenTitle">Trial complete.</h1>
         <p id="betweenText" class="lead"></p>
         <button id="nextConditionBtn" class="primary-large"></button>
       </div>
@@ -173,9 +200,9 @@
       <div class="intro-card compact-card">
         <div class="success-mark">✓</div>
         <p class="eyebrow">Prototype complete</p>
-        <h1>Both workflow versions are finished.</h1>
+        <h1>All four study trials are finished.</h1>
         <p class="lead">
-          Both tests are complete. Submit your anonymous study data to finish the session.
+          All four trials are complete. Submit your anonymous study data to finish the session.
         </p>
         <div class="participant-summary">
           <span>Anonymous Participant ID</span>
