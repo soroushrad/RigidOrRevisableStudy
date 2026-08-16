@@ -581,3 +581,71 @@ body.workflow-touch-drag-active{
     font-size:12px;
   }
 }
+
+
+.final-feedback-form{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+.preference-fieldset{
+  margin:0;
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#fafbff;
+}
+.preference-fieldset legend{
+  padding:0 7px;
+  font-size:14px;
+  font-weight:800;
+  color:var(--text);
+}
+.preference-option{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:10px;
+  padding:12px 14px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#fff;
+  cursor:pointer;
+  font-size:14px;
+  font-weight:700;
+  color:#344054;
+}
+.preference-option:has(input:checked){
+  border-color:var(--accent);
+  background:var(--accent-soft);
+  color:var(--accent);
+}
+.preference-option input{
+  accent-color:var(--accent);
+}
+.final-comment-field{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.final-comment-field label{
+  font-size:14px;
+  font-weight:750;
+  line-height:1.5;
+  color:var(--text);
+}
+.final-comment-field textarea{
+  width:100%;
+  resize:vertical;
+  min-height:120px;
+  padding:12px 14px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  font:inherit;
+  color:var(--text);
+  background:#fff;
+}
+.final-comment-field textarea:focus{
+  outline:2px solid rgba(49,94,251,.15);
+  border-color:var(--accent);
+}

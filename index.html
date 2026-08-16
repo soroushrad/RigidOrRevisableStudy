@@ -150,7 +150,7 @@
         <p class="eyebrow">Post-trial questionnaire</p>
         <h1>How did this trial feel?</h1>
         <p class="lead">
-          Please answer all four questions before continuing. Use the 7-point scale from
+          Please answer all five questions before continuing. Use the 7-point scale from
           <strong>1 = Strongly disagree</strong> to <strong>7 = Strongly agree</strong>.
         </p>
 
@@ -175,8 +175,13 @@
             <div class="likert-scale"></div>
           </div>
 
+          <div class="rating-question" data-rating="revisionNeed">
+            <div class="rating-prompt">I felt a need to change the workflow order after the unexpected change.</div>
+            <div class="likert-scale"></div>
+          </div>
+
           <div id="ratingsError" class="ratings-error hidden">
-            Please answer all four questions before continuing.
+            Please answer all five questions before continuing.
           </div>
 
           <button type="submit" class="primary-large">Submit Ratings & Continue</button>
@@ -192,6 +197,49 @@
         <h1 id="betweenTitle">Trial complete.</h1>
         <p id="betweenText" class="lead"></p>
         <button id="nextConditionBtn" class="primary-large"></button>
+      </div>
+    </section>
+
+    <!-- FINAL WORKFLOW FEEDBACK -->
+    <section id="finalFeedbackScreen" class="screen center-screen hidden">
+      <div class="intro-card questionnaire-card final-feedback-card">
+        <p class="eyebrow">Final comparison</p>
+        <h1>Overall workflow preference</h1>
+        <p class="lead">
+          You have completed all four trials. Please answer one final comparison question before submitting your study data.
+        </p>
+
+        <form id="finalFeedbackForm" class="final-feedback-form">
+          <fieldset class="preference-fieldset">
+            <legend>Overall, which workflow did you prefer?</legend>
+
+            <label class="preference-option">
+              <input type="radio" name="finalPreference" value="rigid">
+              <span>Rigid</span>
+            </label>
+
+            <label class="preference-option">
+              <input type="radio" name="finalPreference" value="revisable">
+              <span>Revisable</span>
+            </label>
+
+            <label class="preference-option">
+              <input type="radio" name="finalPreference" value="no_preference">
+              <span>No preference</span>
+            </label>
+          </fieldset>
+
+          <div class="final-comment-field">
+            <label for="finalComment">Why did you prefer this workflow, or is there anything else you would like to tell us about your experience?</label>
+            <textarea id="finalComment" name="finalComment" rows="5" placeholder="Optional"></textarea>
+          </div>
+
+          <div id="finalFeedbackError" class="ratings-error hidden">
+            Please select a workflow preference before continuing.
+          </div>
+
+          <button type="submit" class="primary-large">Submit Final Feedback</button>
+        </form>
       </div>
     </section>
 

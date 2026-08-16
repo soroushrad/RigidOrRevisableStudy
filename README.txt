@@ -155,3 +155,12 @@ V2.15 — FINAL UI CLEANUP
 - Removed non-interactive Rigid/Revisable cards from the start screen.
 - Start Study now follows the study instructions directly.
 - Experimental logic and data schema remain unchanged.
+
+
+V2.16 FINAL FEEDBACK / STUDY DATA 2.10
+--------------------------------------
+- Added revisionNeed to every trial questionnaire.
+- Added final workflow preference and optional comment.
+- Added finalFeedbackSubmittedAt.
+- Verified constraints_opened logging.
+- Study JSON version is now 2.10.
