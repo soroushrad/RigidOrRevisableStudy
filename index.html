@@ -200,45 +200,41 @@
       </div>
     </section>
 
-    <!-- FINAL WORKFLOW FEEDBACK -->
+
+    <!-- FINAL FEEDBACK -->
     <section id="finalFeedbackScreen" class="screen center-screen hidden">
-      <div class="intro-card questionnaire-card final-feedback-card">
+      <div class="intro-card compact-card">
         <p class="eyebrow">Final comparison</p>
-        <h1>Overall workflow preference</h1>
-        <p class="lead">
-          You have completed all four trials. Please answer one final comparison question before submitting your study data.
-        </p>
+        <h1>Overall, which workflow did you prefer?</h1>
 
         <form id="finalFeedbackForm" class="final-feedback-form">
-          <fieldset class="preference-fieldset">
-            <legend>Overall, which workflow did you prefer?</legend>
-
-            <label class="preference-option">
+          <div class="final-preference-options">
+            <label class="final-choice">
               <input type="radio" name="finalPreference" value="rigid">
               <span>Rigid</span>
             </label>
 
-            <label class="preference-option">
+            <label class="final-choice">
               <input type="radio" name="finalPreference" value="revisable">
               <span>Revisable</span>
             </label>
 
-            <label class="preference-option">
+            <label class="final-choice">
               <input type="radio" name="finalPreference" value="no_preference">
               <span>No preference</span>
             </label>
-          </fieldset>
-
-          <div class="final-comment-field">
-            <label for="finalComment">Why did you prefer this workflow, or is there anything else you would like to tell us about your experience?</label>
-            <textarea id="finalComment" name="finalComment" rows="5" placeholder="Optional"></textarea>
           </div>
+
+          <label class="final-comment-label" for="finalComment">
+            Why did you prefer this workflow, or is there anything else you would like to tell us about your experience?
+          </label>
+          <textarea id="finalComment" rows="5" placeholder="Optional"></textarea>
 
           <div id="finalFeedbackError" class="ratings-error hidden">
             Please select a workflow preference before continuing.
           </div>
 
-          <button type="submit" class="primary-large">Submit Final Feedback</button>
+          <button type="submit" class="primary-large">Continue</button>
         </form>
       </div>
     </section>

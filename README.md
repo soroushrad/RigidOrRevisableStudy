@@ -103,16 +103,12 @@ Do not concatenate v2.8 and v2.9 rows without a normalization/migration step.
 - Study data schema/version remains `2.9`.
 
 
-## v2.16 final feedback update — study data version 2.10
+## Minimal final data update
 
-- Added required `revisionNeed` 1–7 rating after every Rigid and Revisable trial.
-- Verified manual constraint-panel openings are logged as `constraints_opened`; automatic initial display is not logged.
-- Added required final session preference: `rigid`, `revisable`, or `no_preference`.
-- Added optional `finalComment` (empty string when omitted).
-- Added real ISO `finalFeedbackSubmittedAt`.
-- `completedAtClient` now equals the final-feedback submission timestamp, so study completion occurs only after final feedback.
-- Data schema version is now `2.10`.
-- Existing task logic, four-trial counterbalancing, scenarios, workflow manipulation, interaction logs, JSON export, and Google Form submission are preserved.
+Only these additions were made:
+- `ratings.revisionNeed` after every trial.
+- session-level `finalPreference`.
+- optional session-level `finalComment`.
+- session-level `finalFeedbackSubmittedAt`.
 
-### Compatibility
-Version 2.9 rows do not contain `ratings.revisionNeed`, `finalPreference`, `finalComment`, or `finalFeedbackSubmittedAt`. Normalize or keep versions separate during analysis.
+All existing experimental behavior and logging remain unchanged.

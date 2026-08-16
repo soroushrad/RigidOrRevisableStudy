@@ -1143,28 +1143,26 @@ function submitPostTrialRatings(event) {
     $("nextConditionBtn").dataset.trialIndex = String(nextIndex);
     showOnly("betweenScreen");
   } else {
-    $("finalFeedbackForm").reset();
-    $("finalFeedbackError").classList.add("hidden");
     showOnly("finalFeedbackScreen");
   }
 }
 
+
 function submitFinalFeedback(event) {
   event.preventDefault();
 
-  const preference = document.querySelector('input[name="finalPreference"]:checked');
-  if (!preference) {
+  const selected = document.querySelector('input[name="finalPreference"]:checked');
+  if (!selected) {
     $("finalFeedbackError").classList.remove("hidden");
     return;
   }
 
-  state.finalPreference = preference.value;
+  state.finalPreference = selected.value;
   state.finalComment = $("finalComment").value.trim();
   state.finalFeedbackSubmittedAt = new Date().toISOString();
 
-  $("finalFeedbackError").classList.add("hidden");
-  $("participantIdDisplay").textContent = state.participantId;
   showOnly("endScreen");
+  $("participantIdDisplay").textContent = state.participantId;
   updateSubmissionUI();
 }
 
@@ -1217,18 +1215,18 @@ function nameOf(id){ return currentScenario().activities.find(a=>a.id===id)?.nam
 function buildStudyPayload() {
   return {
     study:"Rigid or Revisable",
-    version:"2.10",
+    version:"2.9",
     participantId:state.participantId,
     startedAtClient:state.allTrials[0]?.logs?.[0]?.timestamp || null,
-    completedAtClient:state.finalFeedbackSubmittedAt || null,
+    completedAtClient:new Date().toISOString(),
     firstCondition:state.firstCondition,
     conditionOrder:[...state.conditionOrder],
     completedConditions:[...state.completedConditions],
-    userAgent:navigator.userAgent,
-    trials:state.allTrials,
     finalPreference:state.finalPreference,
     finalComment:state.finalComment,
-    finalFeedbackSubmittedAt:state.finalFeedbackSubmittedAt
+    finalFeedbackSubmittedAt:state.finalFeedbackSubmittedAt,
+    userAgent:navigator.userAgent,
+    trials:state.allTrials
   };
 }
 
@@ -1256,7 +1254,7 @@ function updateSubmissionUI(type="",message=""){
 
 function submitStudyData(){
   if(state.submissionPending)return;
-  if(state.allTrials.length!==4 || !state.finalFeedbackSubmittedAt){updateSubmissionUI("error","All four trials and the final comparison must be completed before data can be submitted.");return;}
+  if(state.allTrials.length!==4){updateSubmissionUI("error","All four trials must be completed before data can be submitted.");return;}
   const cfg=window.STUDY_FORM_CONFIG||{};
   if(!cfg.enabled||!cfg.actionUrl||!cfg.entries){updateSubmissionUI("error","Google Form is not connected yet. Configure form-config.js first.");return;}
   const payload=buildStudyPayload();

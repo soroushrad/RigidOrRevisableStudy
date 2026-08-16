@@ -157,10 +157,10 @@ V2.15 — FINAL UI CLEANUP
 - Experimental logic and data schema remain unchanged.
 
 
-V2.16 FINAL FEEDBACK / STUDY DATA 2.10
---------------------------------------
-- Added revisionNeed to every trial questionnaire.
-- Added final workflow preference and optional comment.
+MINIMAL FINAL DATA UPDATE
+-------------------------
+- Added ratings.revisionNeed.
+- Added finalPreference.
+- Added optional finalComment.
 - Added finalFeedbackSubmittedAt.
-- Verified constraints_opened logging.
-- Study JSON version is now 2.10.
+- No other experimental behavior changed.

@@ -586,66 +586,66 @@ body.workflow-touch-drag-active{
 .final-feedback-form{
   display:flex;
   flex-direction:column;
-  gap:18px;
+  gap:16px;
+  text-align:left;
 }
-.preference-fieldset{
-  margin:0;
-  padding:16px;
-  border:1px solid var(--line);
-  border-radius:14px;
-  background:#fafbff;
-}
-.preference-fieldset legend{
-  padding:0 7px;
-  font-size:14px;
-  font-weight:800;
-  color:var(--text);
-}
-.preference-option{
-  display:flex;
-  align-items:center;
+
+.final-preference-options{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
   gap:10px;
-  margin-top:10px;
-  padding:12px 14px;
-  border:1px solid var(--line);
-  border-radius:11px;
-  background:#fff;
-  cursor:pointer;
-  font-size:14px;
-  font-weight:700;
-  color:#344054;
 }
-.preference-option:has(input:checked){
+
+.final-choice{
+  position:relative;
+}
+
+.final-choice input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+
+.final-choice span{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:44px;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#fff;
+  color:#475467;
+  font-weight:750;
+  cursor:pointer;
+}
+
+.final-choice input:checked + span{
   border-color:var(--accent);
   background:var(--accent-soft);
   color:var(--accent);
 }
-.preference-option input{
-  accent-color:var(--accent);
-}
-.final-comment-field{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-.final-comment-field label{
-  font-size:14px;
-  font-weight:750;
-  line-height:1.5;
+
+.final-comment-label{
+  font-size:13px;
+  font-weight:700;
   color:var(--text);
+  line-height:1.5;
 }
-.final-comment-field textarea{
+
+#finalComment{
   width:100%;
   resize:vertical;
-  min-height:120px;
-  padding:12px 14px;
   border:1px solid var(--line);
-  border-radius:12px;
+  border-radius:10px;
+  padding:12px;
   font:inherit;
   color:var(--text);
   background:#fff;
 }
-.final-comment-field textarea:focus{
-  outline:2px solid rgba(49,94,251,.15);
-  border-color:var(--accent);
+
+@media(max-width:650px){
+  .final-preference-options{
+    grid-template-columns:1fr;
+  }
 }
