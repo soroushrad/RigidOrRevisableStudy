@@ -1285,7 +1285,7 @@ function submitStudyData(){
     // the browser completed the form-response navigation.
     updateSubmissionUI(
       "success",
-      "Submission request completed. Keep this page open until you confirm the response appears in the study sheet."
+      "Submission request completed."
     );
 
     $("submitDataBtn").disabled = false;
